@@ -71,7 +71,14 @@ export default function Homepage() {
 
       {/* Chat Area */}
       <div className="chat-area">
+
         <div className="messages">
+          {messages.length === 0 && !prompt && !loading && (
+            <div className="welcome-message">
+              <h2>Welcome to MelChat AI!</h2>
+              <p>Ask me anything or start a new conversation.</p>
+            </div>
+          )}
           {messages.map((msg, i) => (
             <div
               key={i}
@@ -79,8 +86,7 @@ export default function Homepage() {
                 msg.sender === "user" ? "user" : "assistant"
               }`}
             >
-              <MarkdownPreview source={msg.text} />{" "}
-             
+              {msg.sender === "user" ? <p>{msg.text}</p> : <MarkdownPreview source={msg.text} />}
             </div>
           ))}
 

@@ -46,8 +46,8 @@ margin-bottom: 0.5em;
 }
 
 .sidebar {
-  background: white;
-  color: black;
+  background: #0f1724;
+  color: #e6eef8;
   border-radius: 12px;
   padding: 1rem;
   height: calc(100vh - 160px);
@@ -58,11 +58,11 @@ margin-bottom: 0.5em;
 .sidebar h3, .sidebar h4 { margin-bottom: 0.5rem }
 .sidebar select { width: 100%; padding: 0.5rem; border-radius: 6px }
 .btn { display: inline-block; padding: 0.45rem 0.7rem; margin-right: 0.5rem; border-radius: 6px; border: none; cursor: pointer }
-.btn.ghost { background: gray; color: black; border: 1px solid rgba(255,255,255,0.06) }
+.btn.ghost { background: transparent; color: #cbd5e1; border: 1px solid rgba(255,255,255,0.06) }
 .btn.primary { background: #5b7cfa; color: white }
 
 .history .recent-item { padding: 0.4rem 0; border-bottom: 1px dashed rgba(255,255,255,0.03); text-align: left }
-.recent-text { color: black; font-size: 0.9rem; margin-top: 0.15rem }
+.recent-text { color: #cbd5e1; font-size: 0.9rem; margin-top: 0.15rem }
 
 .chat-area {
   display: flex;
@@ -73,8 +73,8 @@ margin-bottom: 0.5em;
   padding: 1rem;
 }
 
-.messages { flex: 1; overflow: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.6rem }
-.message { max-width: 75%; padding: 0.7rem 0.9rem; border-radius: 10px; font-size: 0.95rem; align-self: flex-start;}
+.messages { flex: 1; overflow: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.6rem; color: white; }
+.message { max-width: 75%; padding: 0.7rem 0.9rem; border-radius: 10px; font-size: 0.95rem }
 .message.user { align-self: flex-end; background: linear-gradient(90deg,#3b82f6,#7c3aed); color: white }
 .message.assistant { align-self: flex-start; background: rgba(255,255,255,0.04); color: #e6eef8 }
 
