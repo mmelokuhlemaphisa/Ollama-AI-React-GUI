@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { queryOllama } from "../lib/ollama";
 import logo from "/src/assets/ai-model.jpg";
 import MarkdownPreview from "@uiw/react-markdown-preview";
+import { FaCamera, FaUpload, FaPaperPlane } from "react-icons/fa";
 
 interface ChatMessage {
   text: string;
@@ -12,6 +13,27 @@ export default function Homepage() {
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      // Here you can handle the file upload logic
+    }
+  };
+
+  const handleCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      // Here you can handle the camera stream
+      // For example, you could open a modal with the camera view
+      console.log("Camera accessed:", stream);
+    } catch (err) {
+      console.error("Error accessing camera:", err);
+    }
+  };
 
   const handleSend = async () => {
     if (!prompt.trim()) return;
@@ -29,21 +51,21 @@ export default function Homepage() {
   return (
     <div className="main-grid">
       {/* Sidebar */}
-      <aside className="sidebar">
-        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-          <img
-            src={logo}
-            alt="MiraChat"
-            style={{
-              width: "36px",
-              height: "36px",
-              borderRadius: "50%",
-              objectFit: "cover",
-            }}
-          />
-          <h3 style={{ margin: 0 }}>MelChat</h3>
-        </div>
-
+      {/* <aside className="sidebar"> */}
+      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+        <img
+          src={logo}
+          alt="MiraChat"
+          style={{
+            width: "36px",
+            height: "36px",
+            borderRadius: "50%",
+            objectFit: "cover",
+          }}
+        />
+        <h3 style={{ margin: 0 }}>MelChat</h3>
+      </div>
+      {/* 
         <div className="sidebar-section">
           <h4>Model</h4>
           <select>
@@ -67,11 +89,10 @@ export default function Homepage() {
           <button className="btn primary">New Chat</button>
           <button className="btn ghost">Clear</button>
         </div>
-      </aside>
+      </aside> */}
 
       {/* Chat Area */}
       <div className="chat-area">
-
         <div className="messages">
           {messages.length === 0 && !prompt && !loading && (
             <div className="welcome-message">
@@ -86,7 +107,11 @@ export default function Homepage() {
                 msg.sender === "user" ? "user" : "assistant"
               }`}
             >
-              {msg.sender === "user" ? <p>{msg.text}</p> : <MarkdownPreview source={msg.text} />}
+              {msg.sender === "user" ? (
+                <p>{msg.text}</p>
+              ) : (
+                <MarkdownPreview className="markdown" source={msg.text} />
+              )}
             </div>
           ))}
 
@@ -103,16 +128,39 @@ export default function Homepage() {
 
         <div className="input-area">
           <input
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Type your message..."
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            style={{ display: "none" }}
+            accept="image/*,.pdf,.doc,.docx"
           />
+          <div className="input-container">
+            <input
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Type your message..."
+            />
+            <button
+              className="btn icon-btn"
+              onClick={handleCamera}
+              title="Take a photo"
+            >
+              <FaCamera />
+            </button>
+            <button
+              className="btn icon-btn"
+              onClick={() => fileInputRef.current?.click()}
+              title="Upload file"
+            >
+              <FaUpload />
+            </button>
+          </div>
           <button
-            className="btn primary"
+            className="btn primary send-btn"
             onClick={handleSend}
             disabled={loading}
           >
-            Send
+            <FaPaperPlane />
           </button>
         </div>
       </div>
