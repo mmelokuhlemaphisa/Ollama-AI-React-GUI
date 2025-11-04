@@ -15,6 +15,30 @@ export default function Homepage() {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [history, setHistory] = useState<string[][]>([]); // Array of message arrays
+  const [currentChatIndex, setCurrentChatIndex] = useState<number>(0);
+  const [requestStart, setRequestStart] = useState<number | null>(null);
+
+  // Save current chat to history and start a new chat
+  const handleNewChat = () => {
+    if (messages.length > 0) {
+      setHistory((prev) => [...prev, messages.map((m) => m.text)]);
+    }
+    setMessages([]);
+    setPrompt("");
+    setCurrentChatIndex(history.length);
+  };
+
+  // Restore a chat from history
+  const handleSelectHistory = (idx: number) => {
+    setMessages(
+      history[idx].map((text, i) => ({
+        text,
+        sender: i % 2 === 0 ? "user" : "ai",
+      }))
+    );
+    setCurrentChatIndex(idx);
+  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -41,58 +65,67 @@ export default function Homepage() {
     setMessages((prev) => [...prev, userMessage]);
     setPrompt("");
     setLoading(true);
+    const start = Date.now();
+    setRequestStart(start);
 
     const reply = await queryOllama(prompt);
-    const aiMessage: ChatMessage = { text: reply, sender: "ai" };
+    const durationMs = Date.now() - start;
+    const seconds = Math.max(1, Math.round(durationMs / 1000));
+    const aiMessage: ChatMessage = {
+      text: `${reply}\n\n---\n\n_Response time: ${seconds}s_`,
+      sender: "ai",
+    };
     setMessages((prev) => [...prev, aiMessage]);
     setLoading(false);
+    setRequestStart(null);
   };
 
   return (
     <div className="main-grid">
       {/* Sidebar */}
-      {/* <aside className="sidebar"> */}
-      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-        <img
-          src={logo}
-          alt="MiraChat"
-          style={{
-            width: "36px",
-            height: "36px",
-            borderRadius: "50%",
-            objectFit: "cover",
-          }}
-        />
-        <h3 style={{ margin: 0 }}>MelChat</h3>
-      </div>
-      {/* 
-        <div className="sidebar-section">
-          <h4>Model</h4>
-          <select>
-            <option>Gemma-2B</option>
-            <option>Phi-2</option>
-            <option>Mistral-7B (Q4)</option>
-          </select>
-        </div>
-
+      <aside className="sidebar">
         <div className="sidebar-section history">
-          <h4>Recent Chats</h4>
-          <div className="recent-item">
-            <div className="recent-text">How are you today?</div>
-          </div>
-          <div className="recent-item">
-            <div className="recent-text">Explain quantum computing</div>
-          </div>
+          <h4>History</h4>
+          {history.length === 0 && (
+            <div className="recent-text">No previous chats</div>
+          )}
+          {history.map((chat, idx) => (
+            <div
+              key={idx}
+              className={`recent-item${
+                currentChatIndex === idx ? " active" : ""
+              }`}
+              onClick={() => handleSelectHistory(idx)}
+              style={{ cursor: "pointer" }}
+            >
+              <div className="recent-text">
+                {chat[0]?.slice(0, 30) || "Chat"} {chat.length > 1 ? "..." : ""}
+              </div>
+            </div>
+          ))}
         </div>
-
         <div className="sidebar-section">
-          <button className="btn primary">New Chat</button>
-          <button className="btn ghost">Clear</button>
+          <button className="btn primary" onClick={handleNewChat}>
+            New Chat
+          </button>
         </div>
-      </aside> */}
+      </aside>
 
       {/* Chat Area */}
       <div className="chat-area">
+        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+          <img
+            src={logo}
+            alt="MiraChat"
+            style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "50%",
+              objectFit: "cover",
+            }}
+          />
+          <h3 style={{ margin: 0, color: "black" }}>MelChat</h3>
+        </div>
         <div className="messages">
           {messages.length === 0 && !prompt && !loading && (
             <div className="welcome-message">
@@ -138,7 +171,7 @@ export default function Homepage() {
             <input
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Type your message..."
+              placeholder={"Type your message..."}
             />
             <button
               className="btn icon-btn"
