@@ -1,12 +1,14 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { queryOllama } from "../lib/ollama";
 import logo from "/src/assets/ai-model.jpg";
 import MarkdownPreview from "@uiw/react-markdown-preview";
-import { FaCamera, FaUpload, FaPaperPlane } from "react-icons/fa";
+import { FaCamera, FaUpload, FaPaperPlane, FaTrash } from "react-icons/fa";
 
 interface ChatMessage {
   text: string;
   sender: "user" | "ai";
+  duration?: number;
+  tokensPerSec?: number;
 }
 
 export default function Homepage() {
@@ -19,6 +21,44 @@ export default function Homepage() {
   const [currentChatIndex, setCurrentChatIndex] = useState<number>(0);
   const [requestStart, setRequestStart] = useState<number | null>(null);
 
+  // Load messages and history from localStorage on mount
+  useEffect(() => {
+    const savedMessages = localStorage.getItem("chatMessages");
+    const savedHistory = localStorage.getItem("chatHistory");
+
+    if (savedMessages) {
+      try {
+        const parsed = JSON.parse(savedMessages);
+        setMessages(parsed);
+      } catch (error) {
+        console.error("Error loading messages from localStorage:", error);
+      }
+    }
+
+    if (savedHistory) {
+      try {
+        const parsed = JSON.parse(savedHistory);
+        setHistory(parsed);
+      } catch (error) {
+        console.error("Error loading history from localStorage:", error);
+      }
+    }
+  }, []);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem("chatMessages", JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  // Save history to localStorage whenever it changes
+  useEffect(() => {
+    if (history.length > 0) {
+      localStorage.setItem("chatHistory", JSON.stringify(history));
+    }
+  }, [history]);
+
   // Save current chat to history and start a new chat
   const handleNewChat = () => {
     if (messages.length > 0) {
@@ -27,6 +67,7 @@ export default function Homepage() {
     setMessages([]);
     setPrompt("");
     setCurrentChatIndex(history.length);
+    localStorage.removeItem("chatMessages"); // Clear current messages from localStorage
   };
 
   // Restore a chat from history
@@ -38,6 +79,27 @@ export default function Homepage() {
       }))
     );
     setCurrentChatIndex(idx);
+  };
+
+  // Delete a chat from history
+  const handleDeleteHistory = (idx: number, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent triggering handleSelectHistory
+    const newHistory = history.filter((_, i) => i !== idx);
+    setHistory(newHistory);
+
+    // If we deleted the current chat, clear messages
+    if (idx === currentChatIndex) {
+      setMessages([]);
+      setCurrentChatIndex(-1);
+    } else if (idx < currentChatIndex) {
+      // Adjust current index if we deleted a chat before it
+      setCurrentChatIndex(currentChatIndex - 1);
+    }
+
+    // Update localStorage
+    if (newHistory.length === 0) {
+      localStorage.removeItem("chatHistory");
+    }
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,12 +130,12 @@ export default function Homepage() {
     const start = Date.now();
     setRequestStart(start);
 
-    const reply = await queryOllama(prompt);
-    const durationMs = Date.now() - start;
-    const seconds = Math.max(1, Math.round(durationMs / 1000));
+    const result = await queryOllama(prompt);
     const aiMessage: ChatMessage = {
-      text: `${reply}\n\n---\n\n_Response time: ${seconds}s_`,
+      text: result.text,
       sender: "ai",
+      duration: result.duration,
+      tokensPerSec: result.tokensPerSec,
     };
     setMessages((prev) => [...prev, aiMessage]);
     setLoading(false);
@@ -96,11 +158,31 @@ export default function Homepage() {
                 currentChatIndex === idx ? " active" : ""
               }`}
               onClick={() => handleSelectHistory(idx)}
-              style={{ cursor: "pointer" }}
+              style={{
+                cursor: "pointer",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "0.5rem",
+              }}
             >
               <div className="recent-text">
                 {chat[0]?.slice(0, 30) || "Chat"} {chat.length > 1 ? "..." : ""}
               </div>
+              <button
+                onClick={(e) => handleDeleteHistory(idx, e)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#999",
+                  cursor: "pointer",
+                  padding: "0.25rem",
+                  fontSize: "0.9rem",
+                }}
+                title="Delete chat"
+              >
+                <FaTrash />
+              </button>
             </div>
           ))}
         </div>
@@ -143,7 +225,22 @@ export default function Homepage() {
               {msg.sender === "user" ? (
                 <p>{msg.text}</p>
               ) : (
-                <MarkdownPreview className="markdown" source={msg.text} />
+                <>
+                  <MarkdownPreview className="markdown" source={msg.text} />
+                  {msg.duration && msg.tokensPerSec && (
+                    <div
+                      style={{
+                        marginTop: "0.5rem",
+                        fontSize: "0.85rem",
+                        color: "#666",
+                        fontStyle: "italic",
+                      }}
+                    >
+                      Response time: {msg.duration}s | Tokens/sec:{" "}
+                      {msg.tokensPerSec}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           ))}
